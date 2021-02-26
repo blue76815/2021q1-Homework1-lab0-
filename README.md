@@ -69,3 +69,24 @@ typedef struct {
     int size;    
 } queue_t;
 ```
+## To do list
+ - [ ] 要附上 strlen(const char str) 規格書說明
+
+由於 strlen(const char str) 計算字串 str 的長度，**但不包括終止空字符 (NULL)。**
+
+
+因此在 `q_insert_head(queue_t *q, char *s)`
+和 `q_insert_tail(queue_t *q, char *s)` 中
+
+節點內配置新字串空間個數時,為 strlen(s)**+1** 個
+
+多加一格,是為了**在字串結尾多填一格 NULL 值**
+
+**避免 strlen(const char str) 計算字串長度時,把字尾相鄰的記憶體殘值也列入字元個數**
+```
+newh->value=malloc(sizeof(char)*strlen(s)+1);
+memset(newh->value,0x00,sizeof(char)*strlen(s)+1);
+```
+![](https://i.imgur.com/QP6vHbN.png)
+
+
