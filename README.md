@@ -1,6 +1,13 @@
 # 2021q1 Homework1 (lab0)
 ###### tags: `linux2021`
-
+<style>
+.blue {
+  color: blue; 
+}
+.red {
+  color: red;
+}
+</style>
 ## 開發環境
 
 ```
@@ -72,7 +79,7 @@ typedef struct {
 ## To do list
  - [ ] 要附上 strlen(const char str) 規格書說明
 
-由於 strlen(const char str) 計算字串 str 的長度，**但不包括終止空字符 (NULL)。**
+由於 strlen(const char str) 計算字串 str 的長度，<span class="red">**但不包括終止空字符 (NULL)。**</span>
 
 
 因此在 `q_insert_head(queue_t *q, char *s)`
@@ -80,9 +87,9 @@ typedef struct {
 
 節點內配置新字串空間個數時,為 strlen(s)**+1** 個
 
-多加一格,是為了**在字串結尾多填一格 NULL 值**
+多加一格,是為了<span class="blue">**在字串結尾多填一格 NULL 值**</span>
 
-**避免 strlen(const char str) 計算字串長度時,把字尾相鄰的記憶體殘值也列入字元個數**
+<span class="blue">**避免 strlen(const char str) 計算字串長度時,把字尾相鄰的記憶體殘值也列入字元個數**</span>
 ```
 newh->value=malloc(sizeof(char)*strlen(s)+1);
 memset(newh->value,0x00,sizeof(char)*strlen(s)+1);
