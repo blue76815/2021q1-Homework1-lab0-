@@ -102,25 +102,241 @@ rm -rf *.dSYM
 ```
 ## 實做 `queue.c` 和 `queue.h` 功能
 ### queue_t 結構
-修改queue.h
+修改 `queue.h` 加入 `int size`
 
-```
+```clike=26
 typedef struct {
     list_ele_t *head; /* Linked list of elements */
     list_ele_t *tail;
     int size;    
 } queue_t;
 ```
-## To do list
- - [ ] 要附上 strlen(const char str) 規格書說明
+### q_size
 
-由於 strlen(const char str) 計算字串 str 的長度，<span class="red">**但不包括終止空字符 (NULL)。**</span>
+```clike=166
+int q_size(queue_t *q)
+{
+    /* TODO: You need to write the code for this function */
+    /* Remember: It should operate in O(1) time */
+    /* TODO: Remove the above comment when you are about to implement. */
+    if (!q || !q->head)
+        return 0;
+    return q->size;
+}
+```
+
+### q_new
+
+```clike=13
+queue_t *q_new()
+{
+    queue_t *q = malloc(sizeof(queue_t));
+    /* TODO: What if malloc returned NULL? */
+    if (!q) {
+        return NULL;
+    }
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+    return q;
+}
+```
+
+### q_free
+
+```clike=27
+void q_free(queue_t *q)
+{
+    /* TODO: How about freeing the list elements and the strings? */
+    /* Free queue structure */
+    if (!q)
+        return;
+
+    list_ele_t *Node;
+    list_ele_t *Next_Node;
+    Node = q->head;
+    while (Node) {
+        free(Node->value);
+        Next_Node = Node->next;
+        free(Node);
+        Node = Next_Node;
+    }
+    free(q);
+}
+```
+
+### q_insert_head
+
+在字串複製時,我使用 memset(), 
+也能達成 strncpy() 的功能
+
+```clike=53
+bool q_insert_head(queue_t *q, char *s)
+{
+    if (q == NULL)
+        return false;
+    /* TODO: What should you do if the q is NULL? */
+    list_ele_t *newh = malloc(sizeof(list_ele_t));
+    if (!newh)
+        return false;
+    /* Don't forget to allocate space for the string and copy it */
+    /* What if either call to malloc returns NULL? */
+    newh->value = (char *) malloc(sizeof(char) * strlen(s) + 1);
+    if (!newh->value) {
+        free(newh);
+        return false;
+    }
+    memset(newh->value, 0x00, sizeof(char) * strlen(s) + 1);
+    memcpy(newh->value, s, sizeof(char) * strlen(s));
+
+    if (q->size == 0) {
+        newh->next = NULL;
+        q->head = newh;
+        q->tail = newh;
+    } else {
+        newh->next = q->head;
+        q->head = newh;
+    }
+    q->size++;
+    return true;
+}
+```
+
+### q_insert_tail
+
+```clike=92
+bool q_insert_tail(queue_t *q, char *s)
+{
+    if (q == NULL)
+        return false;
+    list_ele_t *new_node;
+    /* TODO: You need to write the complete code for this function */
+    /* Remember: It should operate in O(1) time */
+    /* TODO: Remove the above comment when you are about to implement. */
+    new_node = malloc(sizeof(list_ele_t));
+    if (!new_node)
+        return false;
+
+    new_node->value = malloc(sizeof(char) * strlen(s) + 1);
+    if (!new_node->value) {
+        free(new_node);
+        return false;
+    }
+    new_node->next = NULL;
+    memset(new_node->value, 0x00, sizeof(char) * strlen(s) + 1);
+    memcpy(new_node->value, s, sizeof(char) * strlen(s));
+
+    if (q->size == 0) {
+        q->head = new_node;
+        q->tail = new_node;
+    } else {
+        q->tail->next = new_node;
+        q->tail = new_node;
+    }
+    q->size++;
+    return true;
+}
+```
+
+### q_remove_head
+
+```clike=132
+bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
+{
+    /* TODO: You need to fix up this code. */
+    /* TODO: Remove the above comment when you are about to implement. */
+    if (q == NULL || sp == NULL || q->head == NULL || q->size == 0)
+        return false;
+
+    size_t value_size = strlen(q->head->value);
+    memset(sp, 0x00, bufsize);
+    if (bufsize <= value_size)
+        memcpy(sp, q->head->value, bufsize - 1);
+    else
+        memcpy(sp, q->head->value, value_size);
+
+    list_ele_t *remove_head;
+    remove_head = q->head;
+
+    q->size--;
+    if (q->size == 0) {
+        q->head = NULL;
+        q->tail = NULL;
+    } else {
+        q->head = q->head->next;
+    }
+    free(remove_head->value);
+    free(remove_head);
+    return true;
+}
+```
+
+
+### q_reverse
+
+```clike=184
+void q_reverse(queue_t *q)
+{
+    /* TODO: You need to write the code for this function */
+    /* TODO: Remove the above comment when you are about to implement. */
+    if (!q || !q->head || q->size == 1)
+        return;
+    list_ele_t *Node = q->head;
+    list_ele_t *Old_Node;
+    list_ele_t *Next_Node = q->head->next;
+    for (int i = 1; i <= (q->size); i++) {
+        if (i == 1) {
+            Node->next = NULL;
+            q->tail = Node;
+        } else if (i == q->size) {
+            Node->next = Old_Node;
+            q->head = Node;
+            return;
+        } else {
+            Node->next = Old_Node;
+        }
+        Old_Node = Node;
+        Node = Next_Node;
+        Next_Node = Next_Node->next;
+    }
+}
+```
+
+## To do list
+ - [x] 要附上 strlen(const char str) 規格書說明
+
+在終端機中 輸入 `man strlen` 查詢
+
+或是用 [Linux Programming Interface 查詢 strlen](https://man7.org/linux/man-pages/man3/strlen.3.html)
+有提到
+
+> ## STRLEN(3)   Linux Programmer's Manual  
+> 
+> ### NAME
+>        strlen - calculate the length of a string
+> 
+> ### SYNOPSIS
+> ```
+>         #include <string.h>
+>  
+>         size_t strlen(const char *s);
+> ```
+> 
+> ### DESCRIPTION
+> The strlen() function calculates the length of the string pointed to by s, <span class="red">**excluding the terminating null byte ('\0').**</span>
+> 
+> ### RETURN VALUE
+> The strlen() function returns the number of bytes in the string pointed to by s.
+
+strlen() 計算字元個數到 <span class="red">**null byte ('\0')**</span> 才停止
+
+由於 strlen(const char str) 計算字串 str 的長度時，<span class="red">**str 字串資料不包括終止空字符 (NULL)。**</span>
 
 
 因此在 `q_insert_head(queue_t *q, char *s)`
 和 `q_insert_tail(queue_t *q, char *s)` 中
 
-節點內配置新字串空間個數時,為 strlen(s)**+1** 個
+節點內配置新字串空間個數時,為 strlen(s)<span class="red">**+1**</span> 個
 
 多加一格,是為了<span class="blue">**在字串結尾多填一格 NULL 值**</span>
 
@@ -132,11 +348,11 @@ memset(newh->value,0x00,sizeof(char)*strlen(s)+1);
 ![](https://i.imgur.com/QP6vHbN.png)
 
 
+### q_sort()
 [Comparison Sort: Merge Sort(合併排序法)](https://alrightchiu.github.io/SecondRound/comparison-sort-merge-sorthe-bing-pai-xu-fa.html)
 
 [合併排序法](https://openhome.cc/Gossip/AlgorithmGossip/MergeSort.htm)
 
-### q_sort()
 參照 [Merge two sorted linked lists](https://www.geeksforgeeks.org/merge-two-sorted-linked-lists/) 的寫法
 
 由於 lab0 作業的 link list 節點資料為字串
