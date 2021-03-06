@@ -8,6 +8,40 @@
   color: red;
 }
 </style>
+
+## 作業要求
+
+### 1. 開發環境架設
+- [x] 安裝 Ubuntu Linux 20.04-LTS(實體安裝 不是用VM虛擬機)
+- [x] 安裝 VS code
+- [x] 安裝 Cppcheck
+- [x] 安裝 Valgrind
+- [x] Github fork lab0-c 專案
+
+### 2. 實做 `queue.c` 和 `queue.h` 功能
+- [x]  `q_new`: 建立新的「空」佇列;
+- [x]  `q_free`: 釋放佇列所佔用的記憶體;
+- [x]  `q_insert_head`: 在佇列開頭 (head) 加入 (insert) 給定的新元素 (以 LIFO 準則);
+- [x]  `q_insert_tail`: 在佇列尾端 (tail) 加入 (insert) 給定的新元素 (以 FIFO 準則);
+- [x]  `q_remove_head`: 在佇列開頭 (head) 移去 (remove) 給定的元素。
+- [x]  `q_size`: 計算佇列中的元素數量。
+- [x]  `q_reverse`: 以反向順序重新排列鏈結串列，該函式不該配置或釋放任何鏈結串列元素，換言之，它只能重排已經存在的元素;
+- [x]  ==`q_sort`==: 「[Linux 核心設計](http://wiki.csie.ncku.edu.tw/linux/schedule)」課程所新增，以==遞增順序==來排序鏈結串列的元素，可參閱 [Linked List Sort](https://npes87184.github.io/2015-09-12-linkedListSort/) 得知實作手法;
+
+
+---
+- [ ] 3. 開啟 [Address Sanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer)，修正 `qtest` 執行過程中的錯誤
+ 
+- [ ] 4. 運用 Valgrind 排除 `qtest` 實作的記憶體錯誤，並透過 Massif 視覺化 "simulation" 過程中的記憶體使用量
+
+- [ ] 5. 在 `qtest` 中實作 [coroutine](https://en.wikipedia.org/wiki/Coroutine)，並提供新的命令 `web`，提供 web 伺服器功能
+
+- [ ] 6. 解釋 [select](http://man7.org/linux/man-pages/man2/select.2.html) 系統呼叫在本程式的使用方式，並分析 [console.c](https://github.com/sysprog21/lab0-c/blob/master/console.c) 的實作
+
+- [ ] 7. 說明 [antirez/linenoise](https://github.com/antirez/linenoise) 的運作原理，注意到 [termios](http://man7.org/linux/man-pages/man3/termios.3.html) 的運用
+
+- [ ] 8. 研讀論文 [Dude, is my code constant time?](https://eprint.iacr.org/2016/1123.pdf)，解釋本程式的 "simulation" 模式是如何透過以實驗而非理論分析
+
 ## 開發環境
 
 ```
@@ -66,7 +100,8 @@ rm -rf *.dSYM
 (cd traces; rm -f *~)
   
 ```
-## queue_t 結構
+## 實做 `queue.c` 和 `queue.h` 功能
+### queue_t 結構
 修改queue.h
 
 ```
@@ -97,3 +132,115 @@ memset(newh->value,0x00,sizeof(char)*strlen(s)+1);
 ![](https://i.imgur.com/QP6vHbN.png)
 
 
+[Comparison Sort: Merge Sort(合併排序法)](https://alrightchiu.github.io/SecondRound/comparison-sort-merge-sorthe-bing-pai-xu-fa.html)
+
+[合併排序法](https://openhome.cc/Gossip/AlgorithmGossip/MergeSort.htm)
+
+### q_sort()
+參照 [Merge two sorted linked lists](https://www.geeksforgeeks.org/merge-two-sorted-linked-lists/) 的寫法
+
+由於 lab0 作業的 link list 節點資料為字串
+因此比較時改為 `strcmp(a->value, b->value)`
+
+```clike=216
+void MoveNode(list_ele_t **destRef, list_ele_t **sourceRef)
+{
+    /* the front source node  */
+    list_ele_t *newNode = *sourceRef;
+    assert(newNode != NULL);
+
+    /* Advance the source pointer */
+    *sourceRef = newNode->next;
+
+    /* Link the old dest off the new node */
+    newNode->next = *destRef;
+
+    /* Move dest to point to the new node */
+    *destRef = newNode;
+}
+
+list_ele_t *sorted_merge(list_ele_t *a, list_ele_t *b)
+{
+    // a dummy first node to hang the result on
+    list_ele_t dummy;
+    // tail points to the last result node
+    list_ele_t *tail = &dummy;
+
+    dummy.next = NULL;
+
+    while (1) {
+        if (a == NULL) {
+            tail->next = b;
+            break;
+        } else if (b == NULL) {
+            tail->next = a;
+            break;
+        }
+        if (strcmp(a->value, b->value) < 0) {
+            MoveNode(&(tail->next), &a);
+        } else {
+            MoveNode(&(tail->next), &b);
+        }
+
+        tail = tail->next;
+    }
+    return (dummy.next);
+}
+
+void front_back_split(list_ele_t *head,
+                      list_ele_t **front_ref,
+                      list_ele_t **back_ref)
+{
+    // if length is less than 2
+    if (head == NULL || head->next == NULL) {
+        *front_ref = head;
+        *back_ref = NULL;
+        return;
+    }
+
+    list_ele_t *slow = head;
+    list_ele_t *fast = head->next;
+
+    while (fast != NULL) {
+        fast = fast->next;
+        if (fast != NULL) {
+            slow = slow->next;
+            fast = fast->next;
+        }
+    }
+    *front_ref = head;
+    *back_ref = slow->next;
+    slow->next = NULL;
+}
+void merge_sort(list_ele_t **head)
+{
+    if (*head == NULL || (*head)->next == NULL)
+        return;
+
+    list_ele_t *a;
+    list_ele_t *b;
+
+    front_back_split(*head, &a, &b);
+
+    merge_sort(&a);
+    merge_sort(&b);
+
+    *head = sorted_merge(a, b);
+}
+
+void q_sort(queue_t *q)
+{
+    /* TODO: You need to write the code for this function */
+    /* TODO: Remove the above comment when you are about to implement. */
+    if (q == NULL || q->head == NULL)
+        return;
+
+    merge_sort(&q->head);
+
+    list_ele_t *tmp_node = q->head;
+    while (tmp_node->next) {
+        tmp_node = tmp_node->next;
+    }
+    q->tail = tmp_node;
+}
+```
