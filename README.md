@@ -17,7 +17,7 @@
 - [x] 安裝 Cppcheck
 - [x] 安裝 Valgrind
 - [x] Github fork lab0-c 專案
-
+- [x] 接觸 [Linux Programming Interface](http://man7.org/tlpi/)
 ### 2. 實做 `queue.c` 和 `queue.h` 功能
 - [x]  `q_new`: 建立新的「空」佇列;
 - [x]  `q_free`: 釋放佇列所佔用的記憶體;
@@ -149,17 +149,17 @@ void q_free(queue_t *q)
 {
     /* TODO: How about freeing the list elements and the strings? */
     /* Free queue structure */
-    if (!q)
+    if (!q) //先檢查queue是否存在
         return;
 
     list_ele_t *Node;
     list_ele_t *Next_Node;
-    Node = q->head;
-    while (Node) {
-        free(Node->value);
-        Next_Node = Node->next;
-        free(Node);
-        Node = Next_Node;
+    Node = q->head;//step1.先從 quene的 q->head取得第一個節點的位址
+    while (Node) { //step2.檢查取得的節點位址是否為null(最後一個節點位址)
+        free(Node->value);//step3.釋放舊節點的字串資料
+        Next_Node = Node->next;//step4.先從原來節點(Node->next)  備份next新節點位址(Next_Node)
+        free(Node);//step5.釋放掉舊節點
+        Node = Next_Node;//step6.更新成下一個節點位址
     }
     free(q);
 }
@@ -173,7 +173,7 @@ void q_free(queue_t *q)
 ```clike=53
 bool q_insert_head(queue_t *q, char *s)
 {
-    if (q == NULL)
+    if (q == NULL) //先檢查queue是否存在
         return false;
     /* TODO: What should you do if the q is NULL? */
     list_ele_t *newh = malloc(sizeof(list_ele_t));
@@ -190,12 +190,12 @@ bool q_insert_head(queue_t *q, char *s)
     memcpy(newh->value, s, sizeof(char) * strlen(s));
 
     if (q->size == 0) {
-        newh->next = NULL;
+        newh->next = NULL;//建立第1個節點時  節點next位址為null沒有新節點位址
         q->head = newh;
         q->tail = newh;
     } else {
-        newh->next = q->head;
-        q->head = newh;
+        newh->next = q->head;//先從quene的head中 取到原來head位址(q->head）存到新節點（newh）的next成員中
+        q->head = newh;//quene中的head （q->head )==>換成新節點newh 位址
     }
     q->size++;
     return true;
@@ -230,8 +230,8 @@ bool q_insert_tail(queue_t *q, char *s)
         q->head = new_node;
         q->tail = new_node;
     } else {
-        q->tail->next = new_node;
-        q->tail = new_node;
+        q->tail->next = new_node;//還沒覆蓋掉的舊tail節點 的next填上 新節點位址 new_node
+        q->tail = new_node;//最後q->tail再填上 新節點位址 new_node
     }
     q->size++;
     return true;
@@ -239,6 +239,14 @@ bool q_insert_tail(queue_t *q, char *s)
 ```
 
 ### q_remove_head
+沒加  `free(remove_head->value);` 
+則節點全移完後 下次再 new 會出現    
+```
+cmd> new
+Freeing old queue
+ERROR: Attempted to free unallocated block.  Address = 0x5555555555555555
+匯流排錯誤 (核心已傾印)
+```
 
 ```clike=132
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
@@ -250,16 +258,16 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 
     size_t value_size = strlen(q->head->value);
     memset(sp, 0x00, bufsize);
-    if (bufsize <= value_size)
+    if (bufsize <= value_size) // 若輸入的 bufsize 小於head節點字串長度（value_size）
         memcpy(sp, q->head->value, bufsize - 1);
     else
-        memcpy(sp, q->head->value, value_size);
+        memcpy(sp, q->head->value, value_size);//若輸入的 bufsize超過  配置的 value_size 則只能填入 value_size 容量資料
 
     list_ele_t *remove_head;
     remove_head = q->head;
-
+    /*head位址 換成next節點位址*/
     q->size--;
-    if (q->size == 0) {
+    if (q->size == 0) { //剩最後一個節點後 則 head和 tail  位址都要填 NULL
         q->head = NULL;
         q->tail = NULL;
     } else {
@@ -273,6 +281,9 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 
 
 ### q_reverse
+q->size 可用在
+
+計次 for 迴圈的 index 索引長度
 
 ```clike=184
 void q_reverse(queue_t *q)
@@ -284,10 +295,10 @@ void q_reverse(queue_t *q)
     list_ele_t *Node = q->head;
     list_ele_t *Old_Node;
     list_ele_t *Next_Node = q->head->next;
-    for (int i = 1; i <= (q->size); i++) {
+    for (int i = 1; i <= (q->size); i++) { 
         if (i == 1) {
             Node->next = NULL;
-            q->tail = Node;
+            q->tail = Node;//tail節點位址 改成 Node-addr
         } else if (i == q->size) {
             Node->next = Old_Node;
             q->head = Node;
